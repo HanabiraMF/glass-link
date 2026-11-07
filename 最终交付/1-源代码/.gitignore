@@ -1,0 +1,16 @@
+bin/
+obj/
+artifacts/
+.research/
+.vs/
+*.user
+*.suo
+*.pfx
+*.cer
+*.log
+TestResults/
+native/vmulticlient-shim/bin/*
+!native/vmulticlient-shim/bin/vmulticlient.dll
+!native/vmulticlient-shim/bin/.gitkeep
+native/interception/*.dll
+!native/interception/README.md

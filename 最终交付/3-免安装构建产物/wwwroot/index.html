@@ -1,0 +1,194 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>GlassLink · 电脑端</title>
+  <link rel="icon" href="/assets/glasslink.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/desktop.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <img src="/assets/glasslink.svg" alt="" class="brand-mark">
+        <div>
+          <div class="brand-name">GlassLink</div>
+          <div class="brand-sub">低延迟桌面串流 · 电脑端</div>
+        </div>
+      </div>
+
+      <div class="topbar-center">
+        <span id="connectionChip" class="chip chip-neutral"><span class="dot"></span><span class="chip-text">连接中</span></span>
+        <span id="streamChip" class="chip chip-neutral"><span class="dot"></span><span class="chip-text">未串流</span></span>
+        <span id="layerChip" class="chip chip-neutral">输入层：--</span>
+      </div>
+
+      <div class="topbar-actions">
+        <button id="quickStartBtn" class="primary-btn quick-connect-btn">一键开始</button>
+        <button id="fullscreenBtn" class="icon-btn" title="全屏显示电脑画面" aria-label="全屏显示电脑画面">⛶</button>
+        <a class="ghost-link" href="/mobile.html" target="_blank" rel="noopener">手机端 ↗</a>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section id="stage" class="stage" tabindex="0" aria-label="远程桌面画面">
+        <canvas id="videoCanvas" class="video-canvas"></canvas>
+        <div id="idleOverlay" class="idle-overlay">
+          <div class="idle-orbit"></div>
+          <img src="/assets/glasslink.svg" alt="" class="idle-logo">
+          <h1>你的桌面，隔空直达</h1>
+          <p>点击「开始串流」后，画面会以 GPU 加速的 H.264 流实时传输。<br>同时自动捕获键盘与鼠标，画面中的本机光标将被隐藏。</p>
+          <button id="bigStartBtn" class="primary-btn primary-btn-lg">开始串流</button>
+          <div class="idle-note">全屏游戏建议在右侧切换到「驱动注入」</div>
+        </div>
+
+        <div id="videoError" class="video-error hidden">
+          <div class="error-icon">!</div>
+          <h2>视频解码不可用</h2>
+          <p id="videoErrorText"></p>
+          <button id="retryVideoBtn" class="secondary-btn">重新请求关键帧</button>
+        </div>
+
+        <div id="fullscreenControls" class="fullscreen-controls hidden">
+          <button id="exitFullscreenBtn" class="secondary-btn" tabindex="-1">退出全屏</button>
+          <span id="fullscreenKeyHint">系统按键接管中</span>
+        </div>
+
+        <div id="remoteCursor" class="remote-cursor hidden" aria-hidden="true">
+          <svg width="22" height="30" viewBox="0 0 22 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2.2 2.2v19.4l5-4.4 3.5 9.6 3.8-1.4-3.5-9.4h6.4L2.2 2.2Z" fill="#f5fbff" stroke="#07101a" stroke-width="1.7" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <div id="pointerHint" class="pointer-hint hidden">点击画面捕获鼠标 · Esc 释放鼠标</div>
+
+        <div class="stage-hud">
+          <div class="hud-stat"><span id="hudResolution">--</span><small>分辨率</small></div>
+          <div class="hud-divider"></div>
+          <div class="hud-stat"><span id="hudFps">0</span><small>FPS</small></div>
+          <div class="hud-divider"></div>
+          <div class="hud-stat"><span id="hudBitrate">0.0</span><small>Mbps</small></div>
+          <div class="hud-divider"></div>
+          <div class="hud-stat"><span id="hudLatency">--</span><small>ms 往返</small></div>
+        </div>
+
+        <div id="toast" class="toast" role="status"></div>
+      </section>
+
+      <aside class="sidebar" data-no-input>
+        <div class="sidebar-scroll">
+          <section class="panel">
+            <div class="panel-head">
+              <h2>串流控制</h2>
+              <span id="panelState" class="mini-badge">待机</span>
+            </div>
+            <button id="streamBtn" class="primary-btn wide">开始串流</button>
+            <button id="fullscreenScreenBtn" class="secondary-btn wide fullscreen-screen-btn">⛶ 全屏显示电脑画面</button>
+            <p class="panel-copy">启动 DXGI Desktop Duplication 捕获，使用 NVENC / AMF / QSV 硬件编码，通过 WebSocket 把 H.264 Annex-B 直接送入浏览器 WebCodecs。</p>
+            <p class="panel-copy fullscreen-copy">全屏后自动启用浏览器 Keyboard Lock，尽可能接管 Windows 键、Alt、Tab 等可截获的系统按键并转发到被控机；Alt+Tab、Ctrl+Alt+Del 等由操作系统底层保留的组合键浏览器无法截获。</p>
+            <div class="row-between settings-row">
+              <div>
+                <div class="row-title">捕获键鼠输入</div>
+                <div class="row-sub">开启后键盘、鼠标与滚轮都会发回电脑</div>
+              </div>
+              <label class="switch">
+                <input id="captureToggle" type="checkbox" checked>
+                <span class="switch-track"></span>
+              </label>
+            </div>
+            <div class="row-between settings-row">
+              <div>
+                <div class="row-title">隐藏本机鼠标指针</div>
+                <div class="row-sub">串流时隐藏本机光标；被控机鼠标保持显示</div>
+              </div>
+              <span class="mini-badge ok">已启用</span>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>输入注入</h2>
+              <span id="layerHealth" class="mini-badge">自动</span>
+            </div>
+            <select id="controllerSelect" class="select hidden">
+              <option value="auto">自动</option>
+              <option value="software">系统注入</option>
+              <option value="hardware">驱动注入</option>
+            </select>
+            <div id="fallbackBanner" class="notice notice-warn hidden"></div>
+            <div id="controllerDiagnostics" class="diagnostics hidden"></div>
+            <div id="driverNotice" class="driver-notice hidden">
+              <p>输入驱动由安装程序自动配置。需要修复时重新运行安装程序。</p>
+              <div class="driver-actions">
+                <button id="openDriverInstallerBtn" class="secondary-btn">打开驱动目录</button>
+                <button id="recheckHardwareBtn" class="secondary-btn">重新检测</button>
+              </div>
+            </div>
+            <div class="layer-note">输入注入自动选择，切换不会中断视频。</div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>画质与帧率</h2>
+              <span id="videoSettingsState" class="mini-badge">实时生效</span>
+            </div>
+            <div class="settings-grid">
+              <label class="field-stack">
+                <span>画质预设</span>
+                <select id="qualitySelect" class="select">
+                  <option value="4000000">流畅 · 4 Mbps</option>
+                  <option value="8000000">均衡 · 8 Mbps</option>
+                  <option value="16000000" selected>高清 · 16 Mbps</option>
+                  <option value="28000000">极致 · 28 Mbps</option>
+                  <option value="45000000">超清 · 45 Mbps</option>
+                </select>
+              </label>
+              <label class="field-stack">
+                <span>目标帧率</span>
+                <select id="fpsSelect" class="select">
+                  <option value="30">30 FPS</option>
+                  <option value="60" selected>60 FPS</option>
+                  <option value="90">90 FPS</option>
+                  <option value="120">120 FPS</option>
+                  <option value="144">144 FPS</option>
+                </select>
+              </label>
+            </div>
+            <p class="panel-copy">画质调整使用动态码率，帧率通过丢帧限制并保持视频不断线。网络较差时优先降低画质而不是累积延迟。</p>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>实时状态</h2>
+              <span id="clientsBadge" class="mini-badge">0 个客户端</span>
+            </div>
+            <dl class="kv-list">
+              <div><dt>串流状态</dt><dd id="kvStreamState">未串流</dd></div>
+              <div><dt>编码器</dt><dd id="kvEncoder">--</dd></div>
+              <div><dt>编码格式</dt><dd id="kvCodec">H.264 Annex-B</dd></div>
+              <div><dt>连接延迟</dt><dd id="kvLatency">--</dd></div>
+              <div><dt>客户端</dt><dd id="kvClients">0</dd></div>
+              <div><dt>安全上下文</dt><dd id="kvSecure">--</dd></div>
+            </dl>
+          </section>
+
+          <section class="panel panel-muted">
+            <div class="panel-head"><h2>操作提示</h2></div>
+            <ul class="tips">
+              <li>点击画面锁定鼠标，按 <kbd>Esc</kbd> 释放。</li>
+              <li>全屏 DirectX / Unity / Unreal 游戏请使用驱动注入。</li>
+              <li>软件层在全屏游戏、UAC 安全桌面下可能失效，此时页面会提示回退。</li>
+              <li>手机端 WebCodecs 需要 HTTPS，请先安装页面提供的根证书。</li>
+            </ul>
+          </section>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/desktop.js"></script>
+</body>
+</html>

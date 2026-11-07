@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, maximum-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#05080e">
+  <meta name="color-scheme" content="dark">
+  <title>GlassLink · 手机端</title>
+  <link rel="icon" href="/assets/glasslink.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/mobile.css">
+</head>
+<body>
+  <div id="app" class="mobile-app">
+    <canvas id="videoCanvas" class="video-canvas"></canvas>
+    <div class="video-vignette"></div>
+    <div id="remoteCursor" class="remote-cursor hidden" aria-hidden="true">
+      <svg width="22" height="30" viewBox="0 0 22 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2.2 2.2v19.4l5-4.4 3.5 9.6 3.8-1.4-3.5-9.4h6.4L2.2 2.2Z" fill="#f5fbff" stroke="#07101a" stroke-width="1.7" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div id="waitingOverlay" class="waiting-overlay">
+      <div class="waiting-orb"></div>
+      <img src="/assets/glasslink.svg" alt="" class="waiting-logo">
+      <h1>等待电脑画面</h1>
+      <p id="waitingText">正在连接 GlassLink 服务…</p>
+      <button id="requestStartBtn" class="m-btn m-btn-primary hidden">请求电脑开始串流</button>
+    </div>
+
+    <header id="topHud" class="top-hud">
+      <div class="mini-brand">
+        <img src="/assets/glasslink.svg" alt="">
+        <div>
+          <strong>GlassLink</strong>
+          <span id="modeLabel">普通模式</span>
+        </div>
+      </div>
+      <div class="hud-chips">
+        <span id="mobileConnChip" class="m-chip"><i></i>连接中</span>
+        <span id="mobileStreamChip" class="m-chip">未串流</span>
+        <span id="mobileFpsChip" class="m-chip hidden">0 FPS</span>
+      </div>
+      <div class="hud-actions">
+        <button id="keyboardBtn" class="m-icon-btn" title="呼出虚拟键盘">⌨</button>
+        <button id="settingsBtn" class="m-icon-btn" title="串流设置">☰</button>
+        <button id="configBtn" class="m-icon-btn hidden" title="配置控件">⚙</button>
+        <button id="exitGameBtn" class="m-icon-btn hidden" title="退出游戏模式">✕</button>
+        <button id="fsIconBtn" class="m-icon-btn" title="全屏">⛶</button>
+      </div>
+    </header>
+
+    <section id="normalLayer" class="normal-layer">
+      <div id="normalTouchSurface" class="normal-touch-surface" aria-label="触屏区域"></div>
+      <div class="normal-tip">
+        <span class="tip-dot"></span>
+        普通模式 · 触摸直通电脑 · 支持多指
+      </div>
+      <div class="normal-bottom">
+        <div class="normal-bottom-group">
+          <button id="fullscreenChoice" class="m-pill">
+            <span id="fullscreenChoiceText">全屏显示：关</span>
+          </button>
+          <button id="normalKeyboardBtn" class="m-pill">⌨ 键盘</button>
+        </div>
+        <button id="enterGameBtn" class="m-btn m-btn-primary m-btn-game">游戏模式</button>
+      </div>
+    </section>
+
+    <section id="gameLayer" class="game-layer hidden">
+      <canvas id="controlCanvas" class="control-canvas"></canvas>
+      <div id="gameHint" class="game-hint">拖动右侧「视角」区旋转视角</div>
+
+      <div id="editorSheet" class="editor-sheet hidden">
+        <div class="sheet-grab"></div>
+        <div class="editor-head">
+          <div>
+            <strong>虚拟控件配置</strong>
+            <span id="editorSubtitle">拖动控件改变位置</span>
+          </div>
+          <button id="closeEditorBtn" class="m-btn m-btn-ghost">完成</button>
+        </div>
+        <div class="editor-toolbar">
+          <button id="addButton" class="m-tool">＋ 按键</button>
+          <button id="addJoystick" class="m-tool">＋ 摇杆</button>
+          <button id="addLook" class="m-tool">＋ 视角区</button>
+          <button id="resetConfigBtn" class="m-tool danger">重置</button>
+        </div>
+        <div id="editorEmpty" class="editor-empty">点击画布上的控件以编辑；或从上方添加一个新控件。</div>
+        <div id="editorForm" class="editor-form hidden">
+          <div class="form-row">
+            <label for="editLabel">名称</label>
+            <input id="editLabel" class="m-input" maxlength="12" autocomplete="off">
+          </div>
+          <div class="form-grid">
+            <div class="form-row">
+              <label for="editShape">形状</label>
+              <select id="editShape" class="m-select">
+                <option value="circle">圆形</option>
+                <option value="rounded">圆角方形</option>
+                <option value="square">方形</option>
+                <option value="diamond">菱形</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="editKey">映射按键</label>
+              <select id="editKey" class="m-select"></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <label for="editSize">大小 <span id="sizeValue">64</span> px</label>
+            <input id="editSize" type="range" min="44" max="180" step="1">
+          </div>
+          <div class="form-row">
+            <label for="editOpacity">透明度 <span id="opacityValue">65%</span></label>
+            <input id="editOpacity" type="range" min="18" max="100" step="1">
+          </div>
+          <div class="form-row">
+            <label for="editSensitivity">视角灵敏度 <span id="sensitivityValue">1.2</span></label>
+            <input id="editSensitivity" type="range" min="0.2" max="4" step="0.1">
+          </div>
+          <div class="form-row">
+            <label for="editPreset">摇杆方向键</label>
+            <select id="editPreset" class="m-select">
+              <option value="wasd">W A S D</option>
+              <option value="arrows">方向键</option>
+            </select>
+          </div>
+          <div class="form-row color-row">
+            <label for="editColor">主题色</label>
+            <input id="editColor" type="color">
+          </div>
+          <div class="form-actions">
+            <button id="duplicateControlBtn" class="m-btn m-btn-ghost">复制</button>
+            <button id="deleteControlBtn" class="m-btn m-btn-danger">删除此控件</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div id="settingsSheet" class="editor-sheet settings-sheet hidden">
+      <div class="sheet-grab"></div>
+      <div class="editor-head">
+        <div>
+          <strong>串流设置</strong>
+          <span>画质与帧率实时生效，不会中断视频</span>
+        </div>
+        <button id="closeSettingsBtn" class="m-btn m-btn-ghost">完成</button>
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label for="mobileQualitySelect">画质预设</label>
+          <select id="mobileQualitySelect" class="m-select">
+            <option value="4000000">流畅 · 4 Mbps</option>
+            <option value="8000000">均衡 · 8 Mbps</option>
+            <option value="16000000" selected>高清 · 16 Mbps</option>
+            <option value="28000000">极致 · 28 Mbps</option>
+            <option value="45000000">超清 · 45 Mbps</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="mobileFpsSelect">目标帧率</label>
+          <select id="mobileFpsSelect" class="m-select">
+            <option value="30">30 FPS</option>
+            <option value="60" selected>60 FPS</option>
+            <option value="90">90 FPS</option>
+            <option value="120">120 FPS</option>
+            <option value="144">144 FPS</option>
+          </select>
+        </div>
+      </div>
+      <div class="settings-info">
+        <div class="settings-line"><span>输入层</span><strong id="mobileLayerInfo">--</strong></div>
+        <div class="settings-line"><span>全屏显示</span><strong id="mobileFullscreenInfo">关</strong></div>
+        <div class="settings-line"><span>编码器</span><strong id="mobileEncoderInfo">--</strong></div>
+      </div>
+      <button id="menuGameBtn" class="m-btn settings-game-btn">游戏模式 · 虚拟手柄</button>
+      <div id="mobileDriverHint" class="driver-notice hidden">
+        <div class="driver-notice-head">驱动级输入未就绪</div>
+        <p>输入驱动由安装程序配置；未启用时自动回退，不影响正常使用。</p>
+        <button id="mobileDriverBtn" class="m-btn m-btn-ghost">在电脑上打开驱动安装目录</button>
+      </div>
+    </div>
+
+    <div id="keyboardSheet" class="keyboard-sheet hidden">
+      <div class="keyboard-head">
+        <div>
+          <strong>虚拟键盘</strong>
+          <span>文字会发送到被控机</span>
+        </div>
+        <button id="closeKeyboardBtn" class="m-btn m-btn-ghost">收起</button>
+      </div>
+      <textarea id="virtualKeyboardInput" class="keyboard-input" rows="3"
+        placeholder="点击输入文字，使用手机输入法…" autocomplete="off" autocapitalize="sentences"
+        spellcheck="false"></textarea>
+      <button id="sendKeyboardTextBtn" class="m-btn m-btn-primary keyboard-send">发送文本</button>
+      <div class="key-shortcuts">
+        <button class="m-tool" data-special="Escape">Esc</button>
+        <button class="m-tool" data-special="Tab">Tab</button>
+        <button class="m-tool" data-special="Enter">Enter</button>
+        <button class="m-tool" data-special="Backspace">⌫</button>
+        <button class="m-tool" data-special="ArrowUp">↑</button>
+        <button class="m-tool" data-special="ArrowDown">↓</button>
+        <button class="m-tool" data-special="ArrowLeft">←</button>
+        <button class="m-tool" data-special="ArrowRight">→</button>
+        <button class="m-tool" data-special="Delete">Del</button>
+      </div>
+      <p class="keyboard-note">文本通过统一输入事件发送。英文/数字/符号可用；中文取决于被控机输入法与所选输入层。</p>
+    </div>
+
+    <div id="transitionOverlay" class="transition-overlay">
+      <div class="transition-rings"><span></span><span></span><span></span></div>
+      <img src="/assets/glasslink.svg" alt="" class="transition-logo">
+      <h2>进入游戏模式</h2>
+      <p>正在全屏化并加载虚拟控件…</p>
+    </div>
+
+    <div id="fatalOverlay" class="fatal-overlay hidden">
+      <div class="fatal-card">
+        <div class="fatal-mark">!</div>
+        <h2>无法接收画面</h2>
+        <p id="fatalText"></p>
+        <button id="fatalRetryBtn" class="m-btn m-btn-primary">重试</button>
+      </div>
+    </div>
+
+    <div id="longPressRing" class="long-press-ring hidden" aria-hidden="true"></div>
+    <a id="fileBanner" class="file-banner hidden" href="#" download>文件下载</a>
+    <div id="toast" class="m-toast" role="status"></div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/mobile.js"></script>
+</body>
+</html>

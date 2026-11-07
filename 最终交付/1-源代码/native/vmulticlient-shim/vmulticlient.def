@@ -1,0 +1,14 @@
+LIBRARY vmulticlient
+EXPORTS
+    vmulti_alloc
+    vmulti_free
+    vmulti_connect
+    vmulti_disconnect
+    vmulti_update_mouse
+    vmulti_update_relative_mouse
+    vmulti_update_digi
+    vmulti_update_multitouch
+    vmulti_update_joystick
+    vmulti_update_keyboard
+    vmulti_write_message
+    vmulti_read_message

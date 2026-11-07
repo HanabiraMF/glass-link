@@ -1,0 +1,75 @@
+;
+; Virtual Multiple HID Driver for Windows 11
+;
+
+[Version]
+Signature="$WINDOWS NT$"
+Class=HIDClass
+ClassGuid={745a17a0-74d3-11d0-b6fe-00a0c90f57da}
+Provider=%ManufacturerString%
+DriverVer=01/10/2023,1.0.0.0
+CatalogFile=vmulti.cat
+PnpLockdown=1
+
+[DestinationDirs]
+DefaultDestDir = 13
+
+[SourceDisksNames]
+1 = %DiskDesc%,,
+
+[SourceDisksFiles]
+vmulti.sys = 1
+
+; ================= Device section ==================
+
+[Manufacturer]
+%ManufacturerString%=Microsoft,NT$ARCH$.10.0...22000
+
+[Microsoft.NT$ARCH$.10.0...22000]
+%DeviceDesc% = vmulti, root\vmulti
+
+[vmulti.NT]
+CopyFiles=KMDriverCopy
+Include=MsHidKmdf.inf
+Needs=MsHidKmdf.NT
+
+[vmulti.NT.HW]
+Include=MsHidKmdf.inf
+Needs=MsHidKmdf.NT.HW
+
+[vmulti.NT.Services]
+Include=MsHidKmdf.inf
+Needs=MsHidKmdf.NT.Services
+AddService=vmulti, 0, vmulti_Service_Inst
+
+[vmulti.NT.Filters]
+AddFilter=vmulti,,vmulti_Filter_Install
+
+[vmulti_Filter_Install]
+FilterPosition=Lower
+
+[vmulti_Service_Inst]
+DisplayName    = %ServiceDesc%
+ServiceType    = 1
+StartType      = 3
+ErrorControl   = 1
+ServiceBinary  = %13%\vmulti.sys
+
+[vmulti.NT.Wdf]
+KmdfService = vmulti, vmulti_wdfsect
+
+[vmulti_wdfsect]
+KmdfLibraryVersion = 1.15
+
+; ================= copy files ====================
+
+[KMDriverCopy]
+vmulti.sys
+
+;-------------------------------------------------------------;
+
+[Strings]
+ManufacturerString = "djpnewton@gmail.com"
+DeviceDesc   = "VMulti HID Device (Windows 11)"
+ServiceDesc  = "VMulti HID Driver Service"
+DiskDesc     = "VMulti Installation Disk"

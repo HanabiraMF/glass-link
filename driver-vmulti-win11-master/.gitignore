@@ -1,0 +1,62 @@
+# Build artifacts
+build/
+dist/
+x64/
+ARM64/
+*/Release/
+*/Debug/
+
+# Visual Studio files
+*.user
+*.suo
+*.sdf
+*.opensdf
+*.vcxproj.user
+*.aps
+*.pch
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.log
+*.scc
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.spec
+
+# Windows artifacts
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Driver build outputs
+*.obj
+*.lib
+*.exp
+*.ilk
+*.pdb
+*.idb
+
+# Certificate files (keep the one in driver_dist/cert/)
+*.cer
+!driver_dist/cert/*.cer
+
+# Log files
+*.log
+vmulti_installer.log
